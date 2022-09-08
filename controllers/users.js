@@ -24,7 +24,7 @@ function findUserById(id, res, next) {
 
 // создаем пользователя
 const createUser = (req, res, next) => {
-  const { name, email, password, } = req.body;
+  const { name, email, password } = req.body;
   bcrypt.hash(password, 10)
     .then((hash) => User.create({
       name, email, password: hash,

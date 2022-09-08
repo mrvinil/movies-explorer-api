@@ -34,7 +34,6 @@ app.use(errorLogger); // подключаем логгер ошибок
 app.use(errors());
 app.use(errorHandler);
 
-
 // слушаем порт
 app.listen(PORT, (err) => {
   if (err) {
