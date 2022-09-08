@@ -1,17 +1,23 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const { errors } = require('celebrate');
 const routes = require('./routes/index');
 const errorHandler = require('./middlewares/ErrorHandlingMiddleware');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
+const { databaseUrl } = require('./utils/database');
+const limiter = require('./utils/limiter');
 
-const { PORT = process.env.development ? 3000 : 9000 } = process.env;
+const { PORT = 3000 } = process.env;
 
 // подключаемся к БД
-mongoose.connect('mongodb://localhost:27017/bitfilmsdb', {
+mongoose.connect(databaseUrl, {
   useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useCreateIndex: true,
+  useFindAndModify: false,
 });
 
 // запуск приложения
@@ -21,8 +27,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// защита заголовков
+app.use(helmet());
+
 // логгер запросов нужно подключить до всех обработчиков роутов:
 app.use(requestLogger); // подключаем логгер запросов
+
+// IP лимитер
+app.use(limiter);
 
 // используем роуты
 app.use(routes);

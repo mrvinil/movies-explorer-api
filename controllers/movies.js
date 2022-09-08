@@ -1,5 +1,6 @@
 const Movie = require('../models/movie');
 const ApiError = require('../errors/ApiError');
+const errorMessage = require('../utils/errorMessage');
 
 // создаем фильм
 const createMovie = (req, res, next) => {
@@ -35,7 +36,7 @@ const createMovie = (req, res, next) => {
     .then((movie) => res.status(201).send(movie))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next(ApiError.BadRequestError('Переданы некорректные данные при создании фильма'));
+        return next(ApiError.BadRequestError(errorMessage.movie.incorrectMovieData));
       }
       return next(err);
     });
@@ -43,7 +44,8 @@ const createMovie = (req, res, next) => {
 
 // получаем избранные фильмы
 const getMovies = (req, res, next) => {
-  Movie.find({})
+  const owner = req.user._id;
+  Movie.find({ owner })
     .then((movies) => res.send(movies))
     .catch(next);
 };
@@ -54,10 +56,10 @@ const deleteMovie = (req, res, next) => {
   Movie.findById(id)
     .then((movie) => {
       if (!movie) {
-        return next(ApiError.NotFoundError('Такого фильма не существует'));
+        return next(ApiError.NotFoundError(errorMessage.movie.notFoundMovie));
       }
       if (movie.owner.toString() !== req.user._id.toString()) {
-        return next(ApiError.Forbidden('Недостаточно прав'));
+        return next(ApiError.Forbidden(errorMessage.main.accessDenied));
       }
       return Movie.findByIdAndRemove(id)
         .then((data) => res.send(data))
@@ -65,7 +67,7 @@ const deleteMovie = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return next(ApiError.BadRequestError('Переданы некорректные данные при удалении фильма'));
+        return next(ApiError.BadRequestError(errorMessage.movie.notObjectIdMovie));
       }
       return next(err);
     });

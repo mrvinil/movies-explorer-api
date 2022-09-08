@@ -1,6 +1,5 @@
 const { celebrate, Joi } = require('celebrate');
 
-// eslint-disable-next-line no-useless-escape
 const linkRegExp = /^(https?:\/\/)?([\da-z.-]+)\.([a-z.]{2,6})(\/[\w.-]*)*\/?$/;
 
 const loginValidator = celebrate({
@@ -37,7 +36,7 @@ const createMovieValidator = celebrate({
     thumbnail: Joi.string().pattern(linkRegExp).required(),
     nameRU: Joi.string().required(),
     nameEN: Joi.string().required(),
-    movieId: Joi.string().required(),
+    movieId: Joi.number().required(),
   }),
 });
 

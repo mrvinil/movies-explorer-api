@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const ApiError = require('../errors/ApiError');
+const errorMessage = require('../utils/errorMessage');
 
 const { NODE_ENV, JWT_SECRET } = process.env;
 
@@ -10,13 +11,13 @@ function findUserById(id, res, next) {
   User.findById(id)
     .then((user) => {
       if (!user) {
-        return next(ApiError.NotFoundError('Пользователь по указанному id не найден'));
+        return next(ApiError.NotFoundError(errorMessage.user.notFoundUser));
       }
       return res.send(user);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        return next(ApiError.BadRequestError('Некорректный id пользователя'));
+        return next(ApiError.BadRequestError(errorMessage.user.notObjectIdUser));
       }
       return next(err);
     });
@@ -35,10 +36,10 @@ const createUser = (req, res, next) => {
     }))
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next(ApiError.BadRequestError('Переданы некорректные данные при создании пользователя'));
+        return next(ApiError.BadRequestError(errorMessage.user.incorrectUserDataCreate));
       }
       if (err.name === 'MongoError' && err.code === 11000) {
-        return next(ApiError.Conflict('Email уже зарегистрирован'));
+        return next(ApiError.Conflict(errorMessage.user.notUniqueEmail));
       }
       return next(err);
     });
@@ -46,7 +47,7 @@ const createUser = (req, res, next) => {
 
 // получаем пользователя по ID
 const getUser = (req, res, next) => {
-  const { id } = req.params;
+  const id = req.user._id;
   findUserById(id, res, next);
 };
 
@@ -64,13 +65,13 @@ const updateUserInfo = (req, res, next) => {
   )
     .then((user) => {
       if (!user) {
-        return next(ApiError.NotFoundError('Пользователь по указанному id не найден'));
+        return next(ApiError.NotFoundError(errorMessage.user.notFoundUser));
       }
       return res.send(user);
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return next(ApiError.BadRequestError('Переданы некорректные данные при обновлении профиля'));
+        return next(ApiError.BadRequestError(errorMessage.user.incorrectUserDataUpdate));
       }
       return next(err);
     });
@@ -91,6 +92,7 @@ const login = (req, res, next) => {
       res.cookie('jwt', token, {
         maxAge: 3600000 * 24 * 7,
         httpOnly: true,
+        secure: true,
         sameSite: 'none',
       })
         .send({ token });
@@ -100,7 +102,7 @@ const login = (req, res, next) => {
 
 // функция разлогина
 const logout = (req, res) => {
-  res.clearCookie('jwt').send({ message: 'Вы успешно вышли из аккаунта' });
+  res.clearCookie('jwt').send({ message: errorMessage.user.logoutSuccess });
 };
 
 module.exports = {
