@@ -10,7 +10,7 @@ const { requestLogger, errorLogger } = require('./middlewares/logger');
 const { databaseUrl } = require('./utils/database');
 const limiter = require('./utils/limiter');
 
-const { PORT = 3000 } = process.env;
+const { PORT = 3001 } = process.env;
 
 // подключаемся к БД
 mongoose.connect(databaseUrl, {
