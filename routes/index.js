@@ -11,8 +11,9 @@ router.post('/signin', loginValidator, login);
 router.post('/signup', createUserValidator, createUser);
 router.post('/signout', logout);
 
-router.use('/users', auth, userRouter);
-router.use('/movies', auth, movieRouter);
+router.use(auth);
+router.use('/users', userRouter);
+router.use('/movies', movieRouter);
 
 router.use((req, res, next) => {
   next(ApiError.NotFoundError(errorMessage.routes.notFoundAddress));

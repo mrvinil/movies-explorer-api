@@ -102,7 +102,7 @@ const login = (req, res, next) => {
 
 // функция разлогина
 const logout = (req, res) => {
-  res.clearCookie('jwt').send({ message: errorMessage.user.logoutSuccess });
+  res.clearCookie('jwt').send({ message: errorMessage.logout.logoutSuccess });
 };
 
 module.exports = {
