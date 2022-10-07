@@ -1,7 +1,7 @@
 {
   "name": "movies-explorer-api",
   "version": "1.0.0",
-  "description": "Бэкенд сайта по поиску фильмов",
+  "description": "Проект movies explorer - бэкенд",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -9,15 +9,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/"
+    "url": "git+https://github.com/mrvinil/movies-explorer-api"
   },
   "keywords": [],
   "author": "Vyacheslav K.",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/"
+    "url": "https://github.com/mrvinil/movies-explorer-api/issues"
   },
-  "homepage": "https://github.com/",
+  "homepage": "https://github.com/mrvinil/movies-explorer-api",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.0",
