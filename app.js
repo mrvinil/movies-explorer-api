@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
+const cors = require('cors');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const { errors } = require('celebrate');
@@ -9,8 +10,9 @@ const errorHandler = require('./middlewares/ErrorHandlingMiddleware');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
 const { databaseUrl } = require('./utils/database');
 const limiter = require('./utils/limiter');
+const corsOptions = require('./utils/cors');
 
-const { PORT = 3001 } = process.env;
+const { PORT = 9000 } = process.env;
 
 // подключаемся к БД
 mongoose.connect(databaseUrl, {
@@ -29,6 +31,8 @@ app.use(cookieParser());
 
 // защита заголовков
 app.use(helmet());
+
+app.use(cors(corsOptions));
 
 // логгер запросов нужно подключить до всех обработчиков роутов:
 app.use(requestLogger); // подключаем логгер запросов
