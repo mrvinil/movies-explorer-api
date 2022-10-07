@@ -1,40 +1,45 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
-const validator = require('validator');
-const ApiError = require('../errors/ApiError');
+const isEmail = require('validator/lib/isEmail');
+const UnauthorizedError = require('../errors/unauthorized-error');
+const { WRONG_EMAIL, WRONG_EMAIL_OR_PASSWORD } = require('../utils/constants');
 
 const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    minlength: 2,
+    maxlength: 30,
+  },
   email: {
     type: String,
-    required: [true, 'Email обязателен для заполнения'],
+    required: true,
     unique: true,
-    validate: validator.isEmail,
+    validate: {
+      validator: (v) => isEmail(v),
+      message: WRONG_EMAIL,
+    },
   },
   password: {
     type: String,
-    required: [true, 'Пароль обязателен для заполнения'],
+    required: true,
     select: false,
-  },
-  name: {
-    type: String,
-    minLength: [2, 'Имя должно содержать минимум 2 символа, вы ввели {VALUE}'],
-    maxLength: [30, 'Имя должно содержать максимум 30 символов, вы ввели {VALUE}'],
-    required: [true, 'Имя обязательно для заполнения'],
   },
 });
 
-// eslint-disable-next-line func-names
-userSchema.statics.findUserByCredentials = function (email, password) {
+userSchema.statics.findUserByCredentials = function findUserByCredentials({ email, password }) {
   return this.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        return Promise.reject(ApiError.Unauthorized('Неправильные почта или пароль'));
+        return Promise.reject(new UnauthorizedError(WRONG_EMAIL_OR_PASSWORD));
       }
+
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            return Promise.reject(ApiError.Unauthorized('Неправильные почта или пароль'));
+            return Promise.reject(new UnauthorizedError(WRONG_EMAIL_OR_PASSWORD));
           }
+
           return user;
         });
     });

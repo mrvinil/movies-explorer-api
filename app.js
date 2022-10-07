@@ -1,56 +1,44 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
+const cors = require('cors');
 const helmet = require('helmet');
-const cookieParser = require('cookie-parser');
+const mongoose = require('mongoose');
+const bodyParser = require('body-parser');
 const { errors } = require('celebrate');
-const routes = require('./routes/index');
-const errorHandler = require('./middlewares/ErrorHandlingMiddleware');
+const { limiter, devDatabaseUrl } = require('./utils/config');
+const router = require('./routes/routes');
+const errorHandler = require('./middlewares/error-handler');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
-const { databaseUrl } = require('./utils/database');
-const limiter = require('./utils/limiter');
 
-const { PORT = 3001 } = process.env;
+const { PORT = 3000, NODE_ENV, DATABASE_URL } = process.env;
 
-// подключаемся к БД
-mongoose.connect(databaseUrl, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  useCreateIndex: true,
-  useFindAndModify: false,
-});
-
-// запуск приложения
 const app = express();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
+app.use(requestLogger);
+app.use(limiter); // подключаем rate-limiter
+app.use(cors());
+app.use(bodyParser.json()); // для собирания JSON-формата
+app.use(helmet()); // настраиваем заголовки
+app.use(router);
+app.use(errorLogger);
+app.use(errors()); // обработчик ошибок celebrate
+app.use(errorHandler); // мидлвара централизованного обработчика ошибок
 
-// защита заголовков
-app.use(helmet());
+mongoose.connect(NODE_ENV === 'production' ? DATABASE_URL : devDatabaseUrl);
+// app.listen(PORT);
 
-// логгер запросов нужно подключить до всех обработчиков роутов:
-app.use(requestLogger); // подключаем логгер запросов
-
-// IP лимитер
-app.use(limiter);
-
-// используем роуты
-app.use(routes);
-
-// логгер ошибок нужно подключить после обработчиков роутов и до обработчиков ошибок:
-app.use(errorLogger); // подключаем логгер ошибок
-
-// обработчик ошибок celebrate
-app.use(errors());
-app.use(errorHandler);
-
-// слушаем порт
 app.listen(PORT, (err) => {
   if (err) {
+    // eslint-disable-next-line no-console
     console.log(err);
   } else {
-    console.log(`приложение запущено на порту ${PORT}`);
+    // eslint-disable-next-line no-console
+    console.log(`listening port ${PORT}`);
   }
 });
+
+// файл .env не выгружаю, но в нем записаны следующие данные:
+// NODE_ENV = production
+// JWT_SECRET = 'a4768f7eb2a93f64b0dcbc8998e135d1b14bf747b52ba2a7aaf11a2fe34cb2b0'
+// PORT = 3000
+// DATABASE_URL = 'mongodb://localhost:27017/moviesdb'
