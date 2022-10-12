@@ -1,80 +1,111 @@
-const { NODE_ENV, JWT_SECRET } = process.env;
+// Импорты
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-const NotFoundError = require('../errors/not-found-error');
-const BadRequestError = require('../errors/bad-request-error');
-const ConflictError = require('../errors/conflict-error');
-const { devJwtKey } = require('../utils/config');
-const {
-  USER_NOT_FOUND,
-  WRONG_DATA_PROFILE,
-  WRONG_DATA_USER,
-  EMAIL_ALREADY_EXISTS,
-} = require('../utils/constants');
+const NotFoundError = require('../errors/NotFoundError');
+const BadRequestError = require('../errors/BadRequestError');
+const ConflictError = require('../errors/ConflictError');
+const { CREATED_CODE } = require('../utils/constants');
 
-// GET /users/me - возвращает информацию о текущем пользователе
-const getUserInfo = (req, res, next) => {
+const { JWT_SECRET = 'very-secret-key' } = process.env;
+
+// Получение информации о пользователе
+function getUserInfo(req, res, next) {
   User.findById(req.user._id)
-    .orFail(() => next(new NotFoundError(USER_NOT_FOUND)))
-    .then((user) => res.send(user))
-    .catch(next);
-};
-
-// PATCH /users/me — обновляет профиль
-const updateUser = (req, res, next) => {
-  const { name, email } = req.body;
-  User.findByIdAndUpdate(req.user._id, { name, email }, { new: true, runValidators: true })
-    .orFail(() => next(new NotFoundError(USER_NOT_FOUND)))
-    .then((user) => res.send(user))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new BadRequestError(WRONG_DATA_PROFILE));
-      } else if (err.code === 11000) {
-        next(new ConflictError(EMAIL_ALREADY_EXISTS));
-      } else {
-        next(err);
-      }
-    });
-};
-
-// POST /signup — создаёт пользователя
-const createUser = (req, res, next) => {
-  const { name, email, password } = req.body;
-  bcrypt.hash(password, 10)
-    .then((hash) => User.create({
-      name, email, password: hash,
-    }))
+    .orFail(new NotFoundError({ message: 'Пользователь по указанному _id не найден.' }))
     .then((user) => {
-      const newUser = user.toObject();
-      delete newUser.password;
-      res.send(newUser);
+      res.send(user);
+    })
+    .catch(next);
+}
+
+// Обновление информации о пользователе
+function updateUserInfo(req, res, next) {
+  const { email, name } = req.body;
+  User.findByIdAndUpdate(req.user._id, { email, name }, { new: true, runValidators: true })
+    .orFail(new NotFoundError({ message: 'Пользователь по указанному _id не найден.' }))
+    .then((updatedUserData) => {
+      res.send(updatedUserData);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new BadRequestError(WRONG_DATA_USER));
-      } else if (err.code === 11000) {
-        next(new ConflictError(EMAIL_ALREADY_EXISTS));
-      } else {
-        next(err);
+      if (err.code === 11000) {
+        return next(
+          new ConflictError({
+            message: `Пользователь с таким email: ${email} уже зарегестрирован.`,
+          }),
+        );
       }
+      if (err.name === 'ValidationError') {
+        return next(
+          new BadRequestError({
+            message: 'Переданы некорректные данные при обновлении профиля.',
+          }),
+        );
+      }
+      return next(err);
     });
-};
+}
 
-// POST /signin аутентификация (вход)
-const login = (req, res, next) => {
+// Регистрация нового пользователя
+function createUser(req, res, next) {
+  const { email, password, name } = req.body;
+  User.findOne({ email })
+    .then((user) => {
+      if (user) {
+        return next(
+          new ConflictError({
+            message: `Пользователь с таким email: ${user.email} уже зарегестрирован.`,
+          }),
+        );
+      }
+      return bcrypt
+        .hash(password, 10)
+        .then((hash) => User.create({
+          email,
+          password: hash,
+          name,
+        }))
+        .then((newUser) => res.status(CREATED_CODE).send({
+          _id: newUser._id,
+          email,
+          name,
+        }));
+    })
+    .catch((err) => {
+      if (err.code === 11000) {
+        return next(
+          new ConflictError({
+            message: 'Пользователь с таким email уже зарегестрирован.',
+          }),
+        );
+      }
+      if (err.name === 'ValidationError') {
+        return next(
+          new BadRequestError({
+            message: 'Переданы некорректные данные при регистрации пользователя.',
+          }),
+        );
+      }
+      return next(err);
+    });
+}
+
+// Вход в систему
+function login(req, res, next) {
   const { email, password } = req.body;
-  User.findUserByCredentials({ email, password })
+  User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : devJwtKey, { expiresIn: '7d' });
-      res.send({ token });
+      const token = jwt.sign({ _id: user._id }, JWT_SECRET, {
+        expiresIn: '7d',
+      });
+      res.send({ token }).end();
     })
     .catch(next);
-};
+}
 
 module.exports = {
   getUserInfo,
-  updateUser,
+  updateUserInfo,
   createUser,
   login,
 };

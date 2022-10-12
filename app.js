@@ -1,30 +1,46 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
+const cors = require('cors');
 const { errors } = require('celebrate');
-const { limiter, devDatabaseUrl } = require('./utils/config');
-const router = require('./routes/routes');
-const errorHandler = require('./middlewares/error-handler');
+const { limiter } = require('./utils/config');
+const { errorHandler } = require('./middlewares/errorHandler');
 const { requestLogger, errorLogger } = require('./middlewares/logger');
-
-const { PORT = 3000, NODE_ENV, DATABASE_URL } = process.env;
+const routes = require('./routes/index');
 
 const app = express();
+const { PORT = 9000 } = process.env;
+const { DB = 'mongodb://localhost:27017/moviesdb' } = process.env;
+mongoose.connect(DB);
 
-app.use(requestLogger);
-app.use(limiter); // подключаем rate-limiter
+// const limiter = rateLimit();
+
+// Боди-парсер
+app.use(bodyParser.json());
+
+// CORS
 app.use(cors());
-app.use(bodyParser.json()); // для собирания JSON-формата
-app.use(helmet()); // настраиваем заголовки
-app.use(router);
-app.use(errorLogger);
-app.use(errors()); // обработчик ошибок celebrate
-app.use(errorHandler); // мидлвара централизованного обработчика ошибок
 
-mongoose.connect(NODE_ENV === 'production' ? DATABASE_URL : devDatabaseUrl);
+// Логгер запросов
+app.use(requestLogger);
+
+// Лимитер запросов
+app.use(limiter); // подключаем rate-limiter
+
+// Роуты
+app.use('/', routes);
+
+// Логгер ошибок
+app.use(errorLogger);
+
+// Обработчик ошибок celebrate
+app.use(errors());
+
+// Централизованный обработчик ошибок
+app.use(errorHandler);
+
+// Запуск сервера
 // app.listen(PORT);
 
 app.listen(PORT, (err) => {
@@ -36,9 +52,3 @@ app.listen(PORT, (err) => {
     console.log(`listening port ${PORT}`);
   }
 });
-
-// файл .env не выгружаю, но в нем записаны следующие данные:
-// NODE_ENV = production
-// JWT_SECRET = 'a4768f7eb2a93f64b0dcbc8998e135d1b14bf747b52ba2a7aaf11a2fe34cb2b0'
-// PORT = 3000
-// DATABASE_URL = 'mongodb://localhost:27017/moviesdb'

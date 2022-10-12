@@ -1,69 +1,77 @@
 const mongoose = require('mongoose');
-const isURL = require('validator/lib/isURL');
-const { WRONG_URL_FORMAT } = require('../utils/constants');
+const validator = require('validator');
 
-const movieSchema = new mongoose.Schema({
-  country: {
-    type: String,
-    required: true,
-  },
-  director: {
-    type: String,
-    required: true,
-  },
-  duration: {
-    type: Number,
-    required: true,
-  },
-  year: {
-    type: String,
-    required: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  image: {
-    type: String,
-    required: true,
-    validate: {
-      validator: (v) => isURL(v),
-      message: WRONG_URL_FORMAT,
+const movieSchema = new mongoose.Schema(
+  {
+    country: {
+      type: String,
+      required: [true, 'Не передано поле "Страна".'],
+    },
+    director: {
+      type: String,
+      required: [true, 'Не передано поле "Режиссер".'],
+    },
+    duration: {
+      type: Number,
+      required: [true, 'Не передано поле "Длительность".'],
+    },
+    year: {
+      type: String,
+      required: [true, 'Не передано поле "Год выпуска".'],
+    },
+    description: {
+      type: String,
+      required: [true, 'Не передано поле "Описание".'],
+    },
+    image: {
+      type: String,
+      required: [true, 'Не передано поле "Постер".'],
+      validate: {
+        validator(link) {
+          return validator.isURL(link);
+        },
+        message: ({ value }) => `${value} некорректный URL постера.`,
+      },
+    },
+    trailerLink: {
+      type: String,
+      required: [true, 'Не передано поле "Трейлер".'],
+      validate: {
+        validator(link) {
+          return validator.isURL(link);
+        },
+        message: ({ value }) => `${value} некорректный URL трейлера фильма.`,
+      },
+    },
+    thumbnail: {
+      type: String,
+      required: [true, 'Не передано поле "Миниатюрный постер".'],
+      validate: {
+        validator(link) {
+          return validator.isURL(link);
+        },
+        message: ({ value }) => `${value} некорректный URL миниатюрного постера.`,
+      },
+    },
+    owner: {
+      type: mongoose.Types.ObjectId,
+      required: [true, 'Не передано поле "Создатель".'],
+      ref: 'user',
+    },
+    movieId: {
+      type: Number,
+      required: [true, 'Не передано поле "ID фильма".'],
+    },
+    nameRU: {
+      type: String,
+      required: [true, 'Не передано поле "Название на русском языке".'],
+    },
+    nameEN: {
+      type: String,
+      required: [true, 'Не передано поле "Название на английском языке".'],
     },
   },
-  trailerLink: {
-    type: String,
-    required: true,
-    validate: {
-      validator: (v) => isURL(v),
-      message: WRONG_URL_FORMAT,
-    },
-  },
-  thumbnail: {
-    type: String,
-    required: true,
-    validate: {
-      validator: (v) => isURL(v),
-      message: WRONG_URL_FORMAT,
-    },
-  },
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'user',
-    required: true,
-  },
-  movieId: {
-    type: Number,
-    required: true,
-  },
-  nameRU: {
-    type: String,
-    required: true,
-  },
-  nameEN: {
-    type: String,
-    required: true,
-  },
-});
+  { versionKey: false },
+);
 
 module.exports = mongoose.model('movie', movieSchema);
